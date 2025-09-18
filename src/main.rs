@@ -1,7 +1,7 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
-#[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
+// #[cfg(target_os = "windows")]
+// use std::os::windows::process::CommandExt;
 
 #[macro_use]
 extern crate wei_log;
@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let bashrc_path = "/root/.bashrc";
             let export_path = "export PATH=$HOME/.wei/bin/data:$PATH";
 
-            let file = OpenOptions::new().read(true).open(bashrc_path)?;
+            let file = OpenOptions::new().read(true).open(bashrc_path).expect("Failed to open bashrc");
             let reader = io::BufReader::new(file);
             let mut found = false;
 
@@ -120,6 +120,19 @@ WantedBy=multi-user.target
         info!("无法获取exe文件的父目录: {:?}", exe_path);
         return Err("无法获取exe文件的父目录".into());
     }
+    // 创建 data 目录（如果不存在）
+    if !std::path::Path::new("./data").exists() {
+        match std::fs::create_dir("./data") {
+            Ok(_) => {
+                info!("成功创建 ./data 目录");
+            }
+            Err(err) => {
+                info!("创建 ./data 目录失败: {}", err);
+                return Err(err.into());
+            }
+        }
+    }
+
     match std::env::set_current_dir("./data") {
         Ok(_) => {
             info!("成功设置当前目录为 ./data");
@@ -135,26 +148,5 @@ WantedBy=multi-user.target
     #[cfg(not(target_os = "windows"))]
     wei_run::run_async("wei-daemon", vec![])?;
 
-    #[cfg(target_os = "windows")] {
-        std::process::Command::new("powershell")
-        .arg("-ExecutionPolicy").arg("Bypass")
-        .arg("-File").arg("wei-daemon-close.ps1")
-        .creation_flags(winapi::um::winbase::CREATE_NO_WINDOW).output()?;
-
-        std::process::Command::new("powershell")
-        .arg("-ExecutionPolicy").arg("Bypass")
-        .arg("-File").arg("wei-daemon.ps1")
-        .creation_flags(winapi::um::winbase::CREATE_NO_WINDOW).spawn()?;
-    }
-
-    // #[cfg(target_os = "windows")]
-    // wei_run::run("wei-ui", vec![])?;
-
-    // #[cfg(not(target_os = "windows"))]
-    loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(1000)).await;
-    }
-
-    // #[cfg(target_os = "windows")]
     Ok(())
 }
