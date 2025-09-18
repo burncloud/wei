@@ -110,8 +110,25 @@ WantedBy=multi-user.target
     // 获取exe路径
     let exe_path = std::env::current_exe()?;
     // 设置exe路径为当前路径
-    std::env::set_current_dir(exe_path.parent().unwrap())?;
-    std::env::set_current_dir("./data")?;
+    if let Some(parent_path) = exe_path.parent() {
+        if let Err(e) = std::env::set_current_dir(parent_path) {
+            info!("设置当前目录失败: {}, 路径: {:?}", e, parent_path);
+            return Err(e.into());
+        }
+        info!("成功设置当前目录为: {:?}", parent_path);
+    } else {
+        info!("无法获取exe文件的父目录: {:?}", exe_path);
+        return Err("无法获取exe文件的父目录".into());
+    }
+    match std::env::set_current_dir("./data") {
+        Ok(_) => {
+            info!("成功设置当前目录为 ./data");
+        }
+        Err(err) => {
+            info!("设置当前目录为 ./data 失败: {}", err);
+            return Err(err.into());
+        }
+    };
 
     info!("run wei-daemon");
     // 如果是windows系统则运行wei-daemon.ps1，其它系统则运行wei-daemon
@@ -130,14 +147,14 @@ WantedBy=multi-user.target
         .creation_flags(winapi::um::winbase::CREATE_NO_WINDOW).spawn()?;
     }
 
-    #[cfg(target_os = "windows")]
-    wei_run::run("wei-ui", vec![])?;
+    // #[cfg(target_os = "windows")]
+    // wei_run::run("wei-ui", vec![])?;
 
-    #[cfg(not(target_os = "windows"))]
+    // #[cfg(not(target_os = "windows"))]
     loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(1000)).await;
     }
 
-    #[cfg(target_os = "windows")]
+    // #[cfg(target_os = "windows")]
     Ok(())
 }

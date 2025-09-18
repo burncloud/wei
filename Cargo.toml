@@ -36,6 +36,10 @@ tokio = { version = "1", features = ["full"] }
 os_info = "3.7.0"
 ureq = "2.9.6"
 
+# 托盘菜单相关依赖
+tray-icon = "0.21.1"
+webbrowser = "0.8.12"
+
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winbase", "shellapi"] }
 tauri-winrt-notification = "0.1.3"
